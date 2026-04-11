@@ -14,7 +14,10 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "talo_database"
-            ).build()
+            )
+                .fallbackToDestructiveMigration()
+                .build()
+
             INSTANCE = instance
             instance
         }

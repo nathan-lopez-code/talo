@@ -10,26 +10,39 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.hiven.talo.data.local.database.DatabaseProvider
 import com.hiven.talo.data.repository.ProductRepository
+import com.hiven.talo.data.repository.SaleRepository
 import com.hiven.talo.ui.navigation.Screen
 import com.hiven.talo.ui.screens.home.HomeScreen
+import com.hiven.talo.ui.screens.sale.SaleScreen
 import com.hiven.talo.ui.screens.stock.StockScreen
 import com.hiven.talo.ui.theme.TaloTheme
 import com.hiven.talo.viewmodel.ProductViewModel
 import com.hiven.talo.viewmodel.ProductViewModelFactory
+import com.hiven.talo.viewmodel.SaleViewModel
+import com.hiven.talo.viewmodel.SaleViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialisation DB + Repository
         val db = DatabaseProvider.getDatabase(this)
+
         val productRepository = ProductRepository(db.productDao())
-        val factory = ProductViewModelFactory(productRepository)
+        val saleRepository = SaleRepository(
+            saleDao = db.saleDao(),
+            productDao = db.productDao()
+        )
+
+        val productFactory = ProductViewModelFactory(productRepository)
+        val saleFactory = SaleViewModelFactory(saleRepository)
 
         setContent {
             TaloTheme {
-                AppNavigation(factory)
+                AppNavigation(
+                    productFactory = productFactory,
+                    saleFactory = saleFactory
+                )
             }
         }
     }
@@ -37,29 +50,38 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(
-    factory: ProductViewModelFactory
+    productFactory: ProductViewModelFactory,
+    saleFactory: SaleViewModelFactory
 ) {
     val navController = rememberNavController()
 
-    val productViewModel: ProductViewModel = viewModel(factory = factory)
+    val productViewModel: ProductViewModel = viewModel(factory = productFactory)
+    val saleViewModel: SaleViewModel = viewModel(factory = saleFactory)
 
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route
     ) {
-
-        // Accueil
         composable(Screen.Home.route) {
             HomeScreen(
+                onSaleClick = {
+                    navController.navigate(Screen.Sale.route)
+                },
                 onStockClick = {
                     navController.navigate(Screen.Stock.route)
                 }
             )
         }
 
-        // Stock
         composable(Screen.Stock.route) {
             StockScreen(viewModel = productViewModel)
+        }
+
+        composable(Screen.Sale.route) {
+            SaleScreen(
+                productViewModel = productViewModel,
+                saleViewModel = saleViewModel
+            )
         }
     }
 }
